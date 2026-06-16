@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Hub</title>
+    <meta name="description" content="A premium, interactive dashboard for exploring and sharing Google BigQuery release notes.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#grad1)" />
+                        <path d="M2 17L12 22L22 17" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M2 12L12 17L22 12" stroke="url(#grad3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <defs>
+                            <linearGradient id="grad1" x1="2" y1="7" x2="22" y2="7" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#00f2fe" />
+                                <stop offset="100%" stop-color="#4facfe" />
+                            </linearGradient>
+                            <linearGradient id="grad2" x1="2" y1="19.5" x2="22" y2="19.5" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#4facfe" />
+                                <stop offset="100%" stop-color="#00f2fe" />
+                            </linearGradient>
+                            <linearGradient id="grad3" x1="2" y1="14.5" x2="22" y2="14.5" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#00f2fe" />
+                                <stop offset="100%" stop-color="#4facfe" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div>
+                    <h1>BigQuery Release Hub</h1>
+                    <p class="subtitle">Stay updated with the latest Google BigQuery releases, features, and fixes.</p>
+                </div>
+            </div>
+            
+            <div class="action-area">
+                <button id="btn-refresh" class="btn btn-primary" title="Refresh Release Notes">
+                    <svg class="icon spinner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <section class="stats-section">
+            <div class="stat-card total-updates">
+                <div class="stat-title">Total Releases</div>
+                <div id="stat-total" class="stat-value">-</div>
+            </div>
+            <div class="stat-card feature-updates">
+                <div class="stat-title">Features</div>
+                <div id="stat-features" class="stat-value">-</div>
+            </div>
+            <div class="stat-card issue-updates">
+                <div class="stat-title">Issues & Fixes</div>
+                <div id="stat-issues" class="stat-value">-</div>
+            </div>
+            <div class="stat-card other-updates">
+                <div class="stat-title">Deprecations & Notices</div>
+                <div id="stat-others" class="stat-value">-</div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard-main">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="search-wrapper">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="search-input" placeholder="Search release notes (e.g. Gemini, SQL, JSON, tables)..." aria-label="Search release notes">
+                </div>
+                
+                <div class="pill-filters" id="type-filters" role="group" aria-label="Filter by update type">
+                    <button class="pill active" data-type="all">All Updates</button>
+                    <button class="pill" data-type="Feature">Features</button>
+                    <button class="pill" data-type="Issue">Issues</button>
+                    <button class="pill" data-type="Deprecated">Deprecations</button>
+                </div>
+            </div>
+
+            <!-- Feed Status / Alerts -->
+            <div id="feed-status" class="feed-status-info hidden"></div>
+
+            <!-- Release Notes List Container -->
+            <div id="release-notes-container" class="release-notes-container">
+                <!-- Skeleton Loading State -->
+                <div class="skeleton-group">
+                    <div class="skeleton-date"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+                <div class="skeleton-group">
+                    <div class="skeleton-date"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>BigQuery Release Hub &bull; Powered by Flask &amp; Atom Feed &bull; Data from <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" rel="noopener noreferrer">Google Cloud Feed</a></p>
+        </footer>
+    </div>
+
+    <!-- Tweet Composer Modal -->
+    <div id="tweet-modal" class="modal-overlay hidden" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modal-title">Share on Twitter / X</h2>
+                <button id="btn-close-modal" class="btn-close" aria-label="Close modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <p class="modal-description">Review and edit your tweet before posting. The text is optimized to fit within the character limit.</p>
+                
+                <!-- Tweet Sandbox Card -->
+                <div class="tweet-preview-card">
+                    <div class="tweet-user-profile">
+                        <div class="user-avatar">
+                            <!-- Google Cloud Logo as Avatar -->
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#1d9bf0"/>
+                            </svg>
+                        </div>
+                        <div class="user-details">
+                            <span class="user-name">BigQuery Hub</span>
+                            <span class="user-handle">@bq_release_hub</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tweet-textarea-wrapper">
+                        <textarea id="tweet-textarea" rows="5" placeholder="Compose your tweet..."></textarea>
+                    </div>
+                    
+                    <div class="tweet-footer-info">
+                        <div class="char-counter">
+                            <span id="char-count">0</span>/280
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="btn-copy-tweet" class="btn btn-secondary">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copy Text</span>
+                </button>
+                <button id="btn-submit-tweet" class="btn btn-tweet">
+                    <!-- X / Twitter Logo -->
+                    <svg class="icon fill-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    <span>Tweet Now</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- App Logic -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
