@@ -1,4 +1,5 @@
 import re
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from flask import Flask, jsonify, render_template, request
@@ -11,6 +12,7 @@ FEED_URL = "https://docs.cloud.google.com/feeds/bigquery-release-notes.xml"
 # In-memory cache for parsed release notes
 cache = {
     "data": None,
+    "fetched_at": 0.0,
 }
 
 class MLStripper(HTMLParser):
@@ -42,12 +44,12 @@ def parse_entry_content(content_html):
     if not content_html:
         return []
         
-    pattern = re.compile(r'<h3>(.*?)</h3>', re.IGNORECASE)
+    pattern = re.compile(r'<h3\b[^>]*>(.*?)</h3\s*>', re.IGNORECASE | re.DOTALL)
     matches = list(pattern.finditer(content_html))
     updates = []
     
     for i, match in enumerate(matches):
-        update_type = match.group(1).strip()
+        update_type = strip_tags(match.group(1)).strip()
         start_idx = match.end()
         end_idx = matches[i+1].start() if i + 1 < len(matches) else len(content_html)
         
@@ -127,14 +129,16 @@ def index():
 def get_release_notes():
     force_refresh = request.args.get('refresh', 'false').lower() == 'true'
     
-    if force_refresh or cache["data"] is None:
+    if force_refresh or cache["data"] is None or time.monotonic() - cache["fetched_at"] >= 900:
         try:
             cache["data"] = fetch_and_parse_feed()
-        except Exception as e:
+            cache["fetched_at"] = time.monotonic()
+        except Exception:
+            app.logger.warning("BigQuery feed fetch failed")
             return jsonify({
                 "status": "error",
-                "message": f"Failed to fetch release notes: {str(e)}"
-            }), 500
+                "message": "Release notes are temporarily unavailable. Please try again."
+            }), 502
             
     return jsonify({
         "status": "success",
@@ -142,4 +146,4 @@ def get_release_notes():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(host='127.0.0.1', port=5000)

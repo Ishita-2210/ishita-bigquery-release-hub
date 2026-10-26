@@ -1,6 +1,6 @@
 # BigQuery Release Hub 🚀
 
-A modern, high-fidelity web dashboard that fetches, parses, segments, and displays Google BigQuery release notes. The application includes a custom Tweet Composer to help you select individual updates and instantly compose and draft posts to share on Twitter/X.
+A modern, high-fidelity web dashboard that fetches, parses, segments, and displays Google BigQuery release notes. The application includes a custom Tweet Composer to help you select individual updates and compose text and open Twitter/X sharing intents.
 
 Built with **Python Flask** for the backend, and **Vanilla HTML5, CSS3, and JavaScript** for the frontend.
 
@@ -89,3 +89,10 @@ Twitter sharing uses **Twitter Web Intents** to avoid requiring developer API ke
   ```
 - Safe-truncates the text dynamically so the entire tweet content never exceeds the 280-character limit.
 - Clicking **Tweet Now** opens a clean popup window redirecting to `https://twitter.com/intent/tweet?text=...`.
+
+
+## Checks and service behavior
+
+Use Python 3.11+ and install `pytest` alongside `requirements.txt`, then run `python -m pytest -q`. Tests cover heading segmentation, HTML entities, the Flask page, cache expiry, explicit refresh and upstream failures without contacting Google. The feed cache expires after 15 minutes; `?refresh=true` bypasses it. Upstream failures return HTTP 502 with a generic message. Local debug mode is off by default; use `flask --app app run --debug` only for local debugging.
+
+The live feed requires internet access. Cached data is per process, not a persistent shared store. Tweet composition does not authenticate with X or send posts automatically. Feed HTML originates from Google's configured feed; this is not an arbitrary-URL fetch API.
